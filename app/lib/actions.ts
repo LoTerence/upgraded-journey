@@ -5,6 +5,7 @@ import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+// use zod to validate the Invoice form data before saving it to a database
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string(),
@@ -18,7 +19,6 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
 export async function createInvoice(formData: FormData) {
-  // use zod to validate the Invoice form data before saving it to a database
   const { customerId, amount, status } = CreateInvoice.parse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -28,17 +28,21 @@ export async function createInvoice(formData: FormData) {
   const amountInCents = amount * 100;
   const date = new Date().toISOString().split('T')[0];
 
-  // insert data into db
-  await sql`
+  try {
+    await sql`
     INSERT INTO invoices (customer_id, amount, status, date)
     VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
   `;
+  } catch (err) {
+    return {
+      message: 'Database Error: Failed to Create Invoice.',
+    };
+  }
 
   // clear client-side router cache and trigger a new request to the server
   // aka revalidate the path:
   revalidatePath('/dashboard/invoices');
-
-  // redirect user back to '/dashboard/invoices' page
+  // redirect user back to invoices page
   redirect('/dashboard/invoices');
 }
 
@@ -51,17 +55,29 @@ export async function updateInvoice(id: string, formData: FormData) {
 
   const amountInCents = amount * 100;
 
-  await sql`
+  try {
+    await sql`
     UPDATE invoices
     SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
     WHERE id = ${id}
   `;
+  } catch (err) {
+    return {
+      message: 'Database Error: Failed to Update Invoice.',
+    };
+  }
 
   revalidatePath('/dashboard/invoices');
   redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath('/dashboard/invoices');
+  try {
+    await sql`DELETE FROM invoices WHERE id = ${id}`;
+    revalidatePath('/dashboard/invoices');
+  } catch (err) {
+    return {
+      message: 'Database Error: Failed to Delete Invoice.',
+    };
+  }
 }
