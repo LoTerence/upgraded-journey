@@ -1,6 +1,5 @@
 'use client';
 
-import { CustomerField } from '@/app/lib/definitions';
 import Link from 'next/link';
 import { useFormState } from 'react-dom';
 import {
@@ -9,6 +8,7 @@ import {
   CurrencyDollarIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
+import { CustomerField } from '@/app/lib/definitions';
 import { Button } from '@/app/ui/button';
 import { createInvoice } from '@/app/lib/actions';
 
@@ -132,9 +132,9 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               </p>
             ))}
         </div>
-        {JSON.stringify(state.errors) !== '{}' && (
+        {state?.message && (
           <p className="mt-2 text-sm text-red-500">
-            Missing Fields. Failed to Create Invoice
+            {state.message}
           </p>
         )}
       </div>
