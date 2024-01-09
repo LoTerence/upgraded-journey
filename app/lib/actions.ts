@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 // use zod to validate the Invoice form data before saving it to a database
 const FormSchema = z.object({
@@ -117,5 +119,30 @@ export async function deleteInvoice(id: string) {
     return {
       message: 'Database Error: Failed to Delete Invoice.',
     };
+  }
+}
+
+/* 
+test with:
+Email: user@nextmail.com
+Password: 123456
+ */
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
   }
 }
